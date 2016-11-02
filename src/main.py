@@ -1,13 +1,17 @@
 import scapy
+
+from scapy import route
 from scapy.all import *
+from statistics import cimbala_outliers
+
 import time
 
-hostname = "www.google.com"
+hostname = "www.gamespot.com"
 # hostname = "www.clarin.com" # Clarin no responde el trace pero si el sync
 nodes = {}
 rtts = []
 
-for i in range(50): # Vamos a probar hasta 35 saltos
+for i in range(25): # Vamos a probar hasta 35 saltos
 
   packet = IP(dst = hostname, ttl = i) / ICMP() # Creo un paquete de tipo ICMP 
 
@@ -26,12 +30,12 @@ for i in range(50): # Vamos a probar hasta 35 saltos
     else: # Alguien respondio por lo cual se esta escuchando el puerto y hay alguien
       nodes[i] = retry.src
       print("Alcanzado con el syn! " + str(retry.src))
-      break
+      # break
 
   elif reply.type == 0: # Chequeo si llegue al destino (Obtuve un Echo Reply)
     nodes[i] = reply.src
     print("Done! " + str(reply.src))
-    break
+    # break
 
   elif reply.type == 11: # Estoy en un nodo intermedio
     nodes[i] = reply.src
@@ -43,7 +47,12 @@ for i in range(50): # Vamos a probar hasta 35 saltos
 
 # En nodes tengo la IP de cada nodo intermedio
 sorted_keys = sorted(nodes.keys())
+# Busca outliers
+outliers = cimbala_outliers(rtts)
 for key in sorted_keys:
   print(key, nodes[key])
 for rtt in rtts:
-  print(rtt)
+  s = str(rtt)
+  if (rtt in outliers):
+    s + " | outlier"
+  print(s)
