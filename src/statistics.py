@@ -4,12 +4,18 @@ from scipy import stats
 from numpy import mean
 from numpy import std
 
-def cimbala_outliers(rtts):
+def getRttDifferences(route):
+	samples = []
+	for node in route:
+		samples.append(node['rtt_dif'])
+	return samples
+
+def cimbala_outliers(route):
 	outliers = []
 
-	if (len(rtts) > 0):
+	if (len(route) > 0):
 		still_outliers = True
-		samples = rtts
+		samples = getRttDifferences(route)
 
 		#no hay do-while en python?
 		while (still_outliers):
@@ -23,18 +29,20 @@ def cimbala_outliers(rtts):
 			
 			#calcula el chirimbolo "r"
 			thompson_gamma = calculate_thompson_gamma(samples)
-			
+			outlier = None
 			#busca outliers
 			for sample in samples:
 				delta = numpy.absolute(sample - mean)
-				
 				if (delta > thompson_gamma * std_deviation):
-					samples.remove(sample)
-					outliers.append(samples)
-					still_outliers = len(samples) > 0
+					outlier = sample
+					break
+			if(outlier):
+				samples.remove(sample)
+				outliers.append(sample)
+				still_outliers = True
 
 	return outliers
-			
+
 #Usa los nombres de variables como los que estan en las formulas del paper
 def calculate_thompson_gamma(rtts):
 	n = len(rtts)
