@@ -6,11 +6,12 @@ from numpy import std
 
 def getRttDifferences(route):
 	samples = []
-	for node in route:
-		samples.append(node['rtt_dif'])
+	# for node in route:
+	for i in range(1, len(route) - 1):
+		samples.append(route[i]['rtt_dif'])
 	return samples
 
-def cimbala_outliers(route):
+def cimbala_outliers_removing_smples_in_iterations(route):
 	outliers = []
 
 	if (len(route) > 0):
@@ -40,6 +41,30 @@ def cimbala_outliers(route):
 				samples.remove(sample)
 				outliers.append(sample)
 				still_outliers = True
+
+	return outliers
+
+def cimbala_outliers(route):
+	outliers = []
+
+	if (len(route) > 0):
+		still_outliers = True
+		samples = getRttDifferences(route)
+
+		#calcular la media
+		mean = numpy.mean(samples)
+		
+		#calcular el desvio standard
+		std_deviation = numpy.std(samples)
+		
+		#calcula el chirimbolo "r"
+		thompson_gamma = calculate_thompson_gamma(samples)
+
+		#busca outliers
+		for sample in samples:
+			delta = numpy.absolute(sample - mean)
+			if (delta > thompson_gamma * std_deviation):
+				outliers.append(sample)
 
 	return outliers
 

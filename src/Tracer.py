@@ -3,6 +3,7 @@ import scapy
 from scapy import route
 from scapy.all import *
 from statistics import cimbala_outliers
+from statistics import cimbala_outliers_removing_smples_in_iterations
 import numpy as np
 
         
@@ -23,6 +24,7 @@ class Tracer(object):
             intermediateNodes = []
             for i in range(timesForTtl):
                 rrt, src, intermediate_node = self.trace(hostname, ttl)
+                print "rtt is -> ", rrt
                 if(src):
                     probableNodes.append(src)
                     rrtNodes.append(rrt)
@@ -35,19 +37,40 @@ class Tracer(object):
 
         # Busca outliers
         self.addRoundTripTimeDifference(route)
-        
+        self.printCheckingOutliers(route)
+
+    # Printea usando las dos estrategias de busqueda de ouliers
+    def printCheckingOutliers(self, route):
+        pruned_outliers = cimbala_outliers_removing_smples_in_iterations(route)
         outliers = cimbala_outliers(route)
+
+        print "--------- Simple Cimbala Outliers Check ---------"
         for node in route:
-            print node
-            if(node['rtt'] in outliers):
-                print "%d Is outlier" % node['ttl']
+            if(node['rtt_dif'] in outliers):
+                # print "%d Is outlier" % node['ttl']
+                print node, " is Outlier"
+            else:
+                print node
         print "outliers", outliers
+        print "-------------------------------------------------"
+
+        print "--------- Pruned Cimbala Outliers Check ---------"
+        for node in route:
+            if(node['rtt_dif'] in pruned_outliers):
+                # print "%d Is outlier" % node['ttl']
+                print node, " is Outlier"
+            else:
+                print node
+        print "outliers", pruned_outliers
+        print "-------------------------------------------------"
+
+
 
     # Agrego a los paquetes el rout trip time diference
     def addRoundTripTimeDifference(self, route):
         route[0]['rtt_dif'] = route[0]['rtt']
         for i in range(1,len(route)):
-            difference = route[i]['rtt'] - route[i-1]['rtt']
+            difference = np.absolute(route[i]['rtt'] - route[i-1]['rtt'])
             route[i]['rtt_dif'] = difference
 
     def getProbableNode(self, probableNodes,rrtNodes, intermediateNodes, ttl):
