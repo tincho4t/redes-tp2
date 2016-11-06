@@ -14,7 +14,8 @@ class Tracer(object):
         super(Tracer, self).__init__()
         self.timeout = timeout
 
-    def traceRoute(self, hostname, ttlMax = 36, timesForTtl=5):
+    # Por cada TTL hace K request para ver el camino mas probable
+    def traceEachStepRoute(self, hostname, ttlMax = 36, timesForTtl=1000):
 
         route = []
 
@@ -32,7 +33,34 @@ class Tracer(object):
             node = self.getProbableNode(probableNodes, rrtNodes, intermediateNodes, ttl)
             if(node):
                 route.append(node)
-                if(node['intermediate_node']):
+                if(node['intermediate_node'] == False):
+                    break # No sigo porque ya llegue al destino.
+
+        # Busca outliers
+        self.addRoundTripTimeDifference(route)
+        self.printCheckingOutliers(route)
+
+    # Construye un camino de 1 a ttlMax y lo realiza K veces para buscar el camino mas probable
+    def traceEachRoute(self, hostname, ttlMax = 36, timesForTtl=5):
+
+        probableNodes = {}
+        for ttl in range(ttlMax):
+            probableNodes[ttl] = list()
+        # Busco los nodos
+        for i in range(timesForTtl):
+            for ttl in range(1,ttlMax):
+                node = self.traceNode(hostname, ttl)
+                if(node):
+                    probableNodes[ttl].append(node)
+                    if(node['intermediate_node'] == False):
+                        break # Si llegue al destino termino
+        # Calculo la ruta mas probable
+        route = []
+        for ttl in range(ttlMax):
+            routeNode = self.getProbableRouteNode(probableNodes[ttl], ttl)
+            if(routeNode):
+                route.append(routeNode)
+                if(routeNode['intermediate_node'] == False):
                     break # No sigo porque ya llegue al destino.
 
         # Busca outliers
@@ -73,6 +101,24 @@ class Tracer(object):
             difference = np.absolute(route[i]['rtt'] - route[i-1]['rtt'])
             route[i]['rtt_dif'] = difference
 
+    def getProbableRouteNode(self, probableNodes, ttl):
+        node = None
+        if(len(probableNodes) > 0):
+            ip = self.probableSource(probableNodes)
+            node = {'ip':ip, 'ttl': ttl}
+            count = 0
+            rtt = 0
+            intermediate_node = None            
+            for n in probableNodes:
+                if(n['ip'] == ip):
+                    count += 1
+                    rtt += n['rtt']
+                    intermediate_node = n['intermediate_node']
+            node['count'] = count
+            node['rtt'] = rtt / count
+            node['intermediate_node'] = intermediate_node
+        return node
+
     def getProbableNode(self, probableNodes,rrtNodes, intermediateNodes, ttl):
         node = None
         intermediate_node = None
@@ -105,8 +151,15 @@ class Tracer(object):
         rtt = time.time() - start_time # Guardo el tiempo que tardo en enviarse el paquete y volver (rtt)
         return rtt, reply
 
+    def traceNode(self, hostname, ttl):
+        node = None
+        rtt, src, intermediate_node = self.trace(hostname, ttl)
+        if(src):
+            node = {'ip':src, 'rtt': rtt, 'intermediate_node': intermediate_node, 'ttl': ttl}
+        return node
+
     def trace(self, hostname, ttl):
-        intermediate_node = False
+        intermediate_node = True
         src = None
         rtt, reply = self.sendTrace(hostname,ttl)
         if reply is None: # Si no hubo respuesta
@@ -115,11 +168,11 @@ class Tracer(object):
             if(self.syncWasSuccess(retry)): # Alguien respondio por lo cual se esta escuchando el puerto y hay alguien
                 src = retry.src
                 print("Alcanzado con el syn! " + str(src))
-                intermediate_node = True
+                intermediate_node = False
         elif reply.type == 0: # Chequeo si llegue al destino (Obtuve un Echo Reply)
             src = reply.src
             print("Done! " + str(src))
-            intermediate_node = True
+            intermediate_node = False
         elif reply.type == 11: # Estoy en un nodo intermedio
             src = reply.src
             print("%d Estoy paseando por un nodo intermedio: " % ttl, src)
@@ -137,4 +190,11 @@ class Tracer(object):
         return success
 
     def most_common(self, lst):
-            return max(set(lst), key=lst.count)
+        return max(set(lst), key=lst.count)
+
+    def probableSource(self, nodes):
+        ips = []
+        for node in nodes:
+            ips.append(node['ip'])
+        return self.most_common(ips)
+
