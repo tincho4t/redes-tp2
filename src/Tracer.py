@@ -25,7 +25,7 @@ class Tracer(object):
             intermediateNodes = []
             for i in range(timesForTtl):
                 rrt, src, intermediate_node = self.trace(hostname, ttl)
-                print "rtt is -> ", rrt
+                print("rtt is -> ", rrt)
                 if(src):
                     probableNodes.append(src)
                     rrtNodes.append(rrt)
@@ -72,25 +72,25 @@ class Tracer(object):
         pruned_outliers = cimbala_outliers_removing_smples_in_iterations(route)
         outliers = cimbala_outliers(route)
 
-        print "--------- Simple Cimbala Outliers Check ---------"
+        print("--------- Simple Cimbala Outliers Check ---------")
         for node in route:
             if(node['rtt_dif'] in outliers):
                 # print "%d Is outlier" % node['ttl']
-                print node, " is Outlier"
+                print(node, " is Outlier")
             else:
-                print node
-        print "outliers", outliers
-        print "-------------------------------------------------"
+                print(node)
+        print("outliers", outliers)
+        print("-------------------------------------------------")
 
-        print "--------- Pruned Cimbala Outliers Check ---------"
+        print("--------- Pruned Cimbala Outliers Check ---------")
         for node in route:
             if(node['rtt_dif'] in pruned_outliers):
                 # print "%d Is outlier" % node['ttl']
-                print node, " is Outlier"
+                print(node, " is Outlier")
             else:
-                print node
-        print "outliers", pruned_outliers
-        print "-------------------------------------------------"
+                print(node)
+        print("outliers", pruned_outliers)
+        print("-------------------------------------------------")
 
 
 
@@ -163,7 +163,7 @@ class Tracer(object):
         src = None
         rtt, reply = self.sendTrace(hostname,ttl)
         if reply is None: # Si no hubo respuesta
-            print "No hubo respuesta intentando sync..."
+            print("No hubo respuesta intentando sync...")
             rtt, retry = self.sendSync(hostname, ttl)
             if(self.syncWasSuccess(retry)): # Alguien respondio por lo cual se esta escuchando el puerto y hay alguien
                 src = retry.src
@@ -177,7 +177,7 @@ class Tracer(object):
             src = reply.src
             print("%d Estoy paseando por un nodo intermedio: " % ttl, src)
         else: # Es un nodo desconocido
-            print "%d Nodo desconocido" % ttl
+            print("%d Nodo desconocido" % ttl)
             # nodes[i] = '*'
         return rtt, src, intermediate_node
 
