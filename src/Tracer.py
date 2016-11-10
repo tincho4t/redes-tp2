@@ -1,4 +1,7 @@
 import scapy
+import requests
+# pip install python-geoip-geolite2
+from geoip import geolite2
 
 from scapy import route
 from scapy.all import *
@@ -25,8 +28,10 @@ class Tracer(object):
             intermediateNodes = []
             for i in range(timesForTtl):
                 rrt, src, intermediate_node = self.trace(hostname, ttl)
-                print("rtt is -> ", rrt)
+                print("i: ", i)
                 if(src):
+                    print("rtt is -> ", rrt)
+                    print("ttl: %d , i: %d", ttl, i)
                     probableNodes.append(src)
                     rrtNodes.append(rrt)
                     intermediateNodes.append(intermediate_node)
@@ -64,8 +69,40 @@ class Tracer(object):
                     break # No sigo porque ya llegue al destino.
 
         # Busca outliers
+        print ("route: " , route)
         self.addRoundTripTimeDifference(route)
-        self.printCheckingOutliers(route)
+        outliers, pruned_outliers = self.printCheckingOutliers(route)
+
+        with open(hostname + '_ips', 'w') as file_write:
+            for node in route:
+                file_write.write(str(node['ip']) + '\n')
+                
+        with open(hostname + '_rtt', 'w') as file_write:
+            for node in route:
+                file_write.write(str(node['rtt']) + '\n')
+
+        with open(hostname + '_ttl', 'w') as file_write:
+            for node in route:
+                file_write.write(str(node['ttl']) + '\n')
+
+        with open(hostname + '_count', 'w') as file_write:
+            for node in route:
+                file_write.write(str(node['count']) + '\n')
+
+        with open(hostname + '_rtt_dif', 'w') as file_write:
+            for node in route:
+                file_write.write(str(node['rtt_dif']) + '\n')
+
+        with open(hostname + '_rtt_dif', 'w') as file_write:
+            for node in route:
+                file_write.write(str(node['rtt_dif']) + '\n')
+
+        with open(hostname + '_country_continent', 'w') as file_write:
+            for node in route:
+                print (str(node['ip']))
+                location = geolite2.lookup(str(node['ip']))
+                if location is not None:
+                    file_write.write(location.country + ', ' + location.continent + ', ' + str(node['ip']) + '\n')
 
     # Printea usando las dos estrategias de busqueda de ouliers
     def printCheckingOutliers(self, route):
@@ -92,6 +129,7 @@ class Tracer(object):
         print("outliers", pruned_outliers)
         print("-------------------------------------------------")
 
+        return outliers, pruned_outliers
 
 
     # Agrego a los paquetes el rout trip time diference
@@ -162,6 +200,9 @@ class Tracer(object):
         intermediate_node = True
         src = None
         rtt, reply = self.sendTrace(hostname,ttl)
+        if rtt < 0:
+            rtt = 0
+
         if reply is None: # Si no hubo respuesta
             print("No hubo respuesta intentando sync...")
             rtt, retry = self.sendSync(hostname, ttl)
