@@ -1,5 +1,6 @@
 import scapy
 import requests
+import os
 # pip install python-geoip-geolite2
 from geoip import geolite2
 
@@ -73,31 +74,48 @@ class Tracer(object):
         self.addRoundTripTimeDifference(route)
         outliers, pruned_outliers = self.printCheckingOutliers(route)
 
-        with open(hostname + '_ips', 'w') as file_write:
+        directory = hostname + '/'
+
+        if not os.path.exists(directory):
+            os.mkdir(directory)
+
+        with open(directory + 'ips', 'w') as file_write:
             for node in route:
                 file_write.write(str(node['ip']) + '\n')
                 
-        with open(hostname + '_rtt', 'w') as file_write:
+        with open(directory + 'rtt', 'w') as file_write:
             for node in route:
                 file_write.write(str(node['rtt']) + '\n')
 
-        with open(hostname + '_ttl', 'w') as file_write:
+        with open(directory + 'ttl', 'w') as file_write:
             for node in route:
                 file_write.write(str(node['ttl']) + '\n')
 
-        with open(hostname + '_count', 'w') as file_write:
+        with open(directory + 'count', 'w') as file_write:
             for node in route:
                 file_write.write(str(node['count']) + '\n')
 
-        with open(hostname + '_rtt_dif', 'w') as file_write:
+        with open(directory + 'rtt_dif', 'w') as file_write:
             for node in route:
                 file_write.write(str(node['rtt_dif']) + '\n')
 
-        with open(hostname + '_rtt_dif', 'w') as file_write:
+        with open(directory + 'rtt_dif', 'w') as file_write:
             for node in route:
                 file_write.write(str(node['rtt_dif']) + '\n')
 
-        with open(hostname + '_country_continent', 'w') as file_write:
+        with open(directory + 'outliers', 'w') as file_write:
+            for outlier in outliers:
+                for node in route:
+                    if node['rtt_dif'] == outlier:
+                        file_write.write(str(outlier) + ', ' + str(node['ip']) + '\n')
+
+        with open(directory + 'pruned_outliers', 'w') as file_write:
+            for outlier in pruned_outliers:
+                for node in route:
+                    if node['rtt_dif'] == outlier:
+                        file_write.write(str(outlier) + ', ' + str(node['ip']) + '\n')
+
+        with open(directory + 'country_continent', 'w') as file_write:
             for node in route:
                 print (str(node['ip']))
                 location = geolite2.lookup(str(node['ip']))
