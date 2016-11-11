@@ -1,4 +1,8 @@
 import scapy
+import requests
+import os
+# pip install python-geoip-geolite2
+from geoip import geolite2
 
 from scapy import route
 from scapy.all import *
@@ -25,8 +29,10 @@ class Tracer(object):
             intermediateNodes = []
             for i in range(timesForTtl):
                 rrt, src, intermediate_node = self.trace(hostname, ttl)
-                print "rtt is -> ", rrt
+                print("i: ", i)
                 if(src):
+                    print("rtt is -> ", rrt)
+                    print("ttl: %d , i: %d", ttl, i)
                     probableNodes.append(src)
                     rrtNodes.append(rrt)
                     intermediateNodes.append(intermediate_node)
@@ -64,34 +70,84 @@ class Tracer(object):
                     break # No sigo porque ya llegue al destino.
 
         # Busca outliers
+        print ("route: " , route)
         self.addRoundTripTimeDifference(route)
-        self.printCheckingOutliers(route)
+        outliers, pruned_outliers = self.printCheckingOutliers(route)
+
+        directory = hostname + '/'
+
+        if not os.path.exists(directory):
+            os.mkdir(directory)
+
+        with open(directory + 'ips', 'w') as file_write:
+            for node in route:
+                file_write.write(str(node['ip']) + '\n')
+                
+        with open(directory + 'rtt', 'w') as file_write:
+            for node in route:
+                file_write.write(str(node['rtt']) + '\n')
+
+        with open(directory + 'ttl', 'w') as file_write:
+            for node in route:
+                file_write.write(str(node['ttl']) + '\n')
+
+        with open(directory + 'count', 'w') as file_write:
+            for node in route:
+                file_write.write(str(node['count']) + '\n')
+
+        with open(directory + 'rtt_dif', 'w') as file_write:
+            for node in route:
+                file_write.write(str(node['rtt_dif']) + '\n')
+
+        with open(directory + 'rtt_dif', 'w') as file_write:
+            for node in route:
+                file_write.write(str(node['rtt_dif']) + '\n')
+
+        with open(directory + 'outliers', 'w') as file_write:
+            for outlier in outliers:
+                for node in route:
+                    if node['rtt_dif'] == outlier:
+                        file_write.write(str(outlier) + ', ' + str(node['ip']) + '\n')
+
+        with open(directory + 'pruned_outliers', 'w') as file_write:
+            for outlier in pruned_outliers:
+                for node in route:
+                    if node['rtt_dif'] == outlier:
+                        file_write.write(str(outlier) + ', ' + str(node['ip']) + '\n')
+
+        with open(directory + 'country_continent', 'w') as file_write:
+            for node in route:
+                print (str(node['ip']))
+                location = geolite2.lookup(str(node['ip']))
+                if location is not None:
+                    file_write.write(location.country + ', ' + location.continent + ', ' + str(node['ip']) + '\n')
 
     # Printea usando las dos estrategias de busqueda de ouliers
     def printCheckingOutliers(self, route):
         pruned_outliers = cimbala_outliers_removing_smples_in_iterations(route)
         outliers = cimbala_outliers(route)
 
-        print "--------- Simple Cimbala Outliers Check ---------"
+        print("--------- Simple Cimbala Outliers Check ---------")
         for node in route:
             if(node['rtt_dif'] in outliers):
                 # print "%d Is outlier" % node['ttl']
-                print node, " is Outlier"
+                print(node, " is Outlier")
             else:
-                print node
-        print "outliers", outliers
-        print "-------------------------------------------------"
+                print(node)
+        print("outliers", outliers)
+        print("-------------------------------------------------")
 
-        print "--------- Pruned Cimbala Outliers Check ---------"
+        print("--------- Pruned Cimbala Outliers Check ---------")
         for node in route:
             if(node['rtt_dif'] in pruned_outliers):
                 # print "%d Is outlier" % node['ttl']
-                print node, " is Outlier"
+                print(node, " is Outlier")
             else:
-                print node
-        print "outliers", pruned_outliers
-        print "-------------------------------------------------"
+                print(node)
+        print("outliers", pruned_outliers)
+        print("-------------------------------------------------")
 
+        return outliers, pruned_outliers
 
 
     # Agrego a los paquetes el rout trip time diference
@@ -162,8 +218,11 @@ class Tracer(object):
         intermediate_node = True
         src = None
         rtt, reply = self.sendTrace(hostname,ttl)
+        if rtt < 0:
+            rtt = 0
+
         if reply is None: # Si no hubo respuesta
-            print "No hubo respuesta intentando sync..."
+            print("No hubo respuesta intentando sync...")
             rtt, retry = self.sendSync(hostname, ttl)
             if(self.syncWasSuccess(retry)): # Alguien respondio por lo cual se esta escuchando el puerto y hay alguien
                 src = retry.src
@@ -177,7 +236,7 @@ class Tracer(object):
             src = reply.src
             print("%d Estoy paseando por un nodo intermedio: " % ttl, src)
         else: # Es un nodo desconocido
-            print "%d Nodo desconocido" % ttl
+            print("%d Nodo desconocido" % ttl)
             # nodes[i] = '*'
         return rtt, src, intermediate_node
 
