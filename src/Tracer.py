@@ -7,7 +7,7 @@ from geoip import geolite2
 from scapy import route
 from scapy.all import *
 from statistics import cimbala_outliers
-from statistics import cimbala_outliers_removing_smples_in_iterations
+from statistics import cimbala_outliers_removing_samples_in_iterations
 import numpy as np
 
         
@@ -124,7 +124,7 @@ class Tracer(object):
 
     # Printea usando las dos estrategias de busqueda de ouliers
     def printCheckingOutliers(self, route):
-        pruned_outliers = cimbala_outliers_removing_smples_in_iterations(route)
+        pruned_outliers = cimbala_outliers_removing_samples_in_iterations(route)
         outliers = cimbala_outliers(route)
 
         print("--------- Simple Cimbala Outliers Check ---------")

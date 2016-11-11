@@ -11,12 +11,13 @@ def getRttDifferences(route):
 		samples.append(route[i]['rtt_dif'])
 	return samples
 
-def cimbala_outliers_removing_smples_in_iterations(route):
+def cimbala_outliers_removing_samples_in_iterations(route):
 	outliers = []
 
 	if (len(route) > 0):
 		still_outliers = True
 		samples = getRttDifferences(route)
+                print (samples)
 
 		#no hay do-while en python?
 		while (still_outliers):
@@ -32,8 +33,10 @@ def cimbala_outliers_removing_smples_in_iterations(route):
 			thompson_gamma = calculate_thompson_gamma(samples)
 			outlier = None
 			#busca outliers
+                        print ("umbral: ", thompson_gamma * std_deviation)
 			for sample in samples:
 				delta = numpy.absolute(sample - mean)
+                                print ("delta: ", delta)
 				if (delta > thompson_gamma * std_deviation):
 					outlier = sample
 					break

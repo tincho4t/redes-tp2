@@ -1,6 +1,7 @@
 from Tracer import Tracer
 
-hostname = "sydney.edu.au"
+#hostname = "sydney.edu.au"
+hostname = "msu.ru"
 #hostname = "www.google.com"
 #hostname = "www.u-tokyo.ac.jp"
 #hostname = "www.clarin.com" # Clarin no responde el trace pero si el sync
@@ -9,4 +10,4 @@ hostname = "sydney.edu.au"
 
 t = Tracer(timeout=5)
 #t.traceEachStepRoute(hostname, 36, 5)
-t.traceEachRoute(hostname, 36, timesForTtl=1)
+t.traceEachRoute(hostname, 36, timesForTtl=25)
