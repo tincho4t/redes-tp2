@@ -71,13 +71,13 @@ def cimbala_outliers(route):
 #Usa los nombres de variables como los que estan en las formulas del paper
 def calculate_thompson_gamma(rtts):
 	n = len(rtts)
-	
+
 	#Studnt, n=999, p<0.05, 2-tail
 	#equivalent to Excel TINV(0.05,999)
-	t_a_2	= stats.t.ppf(1-0.025, n - 2)
-	n_root = numpy.sqrt(n)
+	t_a_2	= float( stats.t.ppf(1-0.025, n - 2) )
+	n_root = float( numpy.sqrt(n) )
 
-	numerator	 = t_a_2 * (n - 1)
-	denominator = n_root * numpy.sqrt( n - 2 + numpy.power(t_a_2, 2) )
+	numerator	= t_a_2 * (n - 1)
+	denominator = n_root * float( numpy.sqrt( n - 2 + numpy.power(t_a_2, 2) ) )
 
-	return numerator / denominator
+	return float(numerator) / float(denominator)
