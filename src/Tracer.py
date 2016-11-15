@@ -70,9 +70,8 @@ class Tracer(object):
                     break # No sigo porque ya llegue al destino.
 
         # Busca outliers
-        print ("route: " , route)
         self.addRoundTripTimeDifference(route)
-        outliers, pruned_outliers = self.printCheckingOutliers(route)
+        outliers = self.printCheckingOutliers(route)
 
         directory = hostname + '/'
 
@@ -109,12 +108,6 @@ class Tracer(object):
                     if node['rtt_dif'] == outlier:
                         file_write.write(str(outlier) + ', ' + str(node['ip']) + '\n')
 
-        with open(directory + 'pruned_outliers', 'w') as file_write:
-            for outlier in pruned_outliers:
-                for node in route:
-                    if node['rtt_dif'] == outlier:
-                        file_write.write(str(outlier) + ', ' + str(node['ip']) + '\n')
-
         with open(directory + 'country_continent', 'w') as file_write:
             for node in route:
                 print (str(node['ip']))
@@ -124,7 +117,6 @@ class Tracer(object):
 
     # Printea usando las dos estrategias de busqueda de ouliers
     def printCheckingOutliers(self, route):
-        pruned_outliers = cimbala_outliers_removing_smples_in_iterations(route)
         outliers = cimbala_outliers(route)
 
         print("--------- Simple Cimbala Outliers Check ---------")
@@ -135,27 +127,20 @@ class Tracer(object):
             else:
                 print(node)
         print("outliers", outliers)
-        print("-------------------------------------------------")
-
-        print("--------- Pruned Cimbala Outliers Check ---------")
-        for node in route:
-            if(node['rtt_dif'] in pruned_outliers):
-                # print "%d Is outlier" % node['ttl']
-                print(node, " is Outlier")
-            else:
-                print(node)
-        print("outliers", pruned_outliers)
-        print("-------------------------------------------------")
-
-        return outliers, pruned_outliers
-
+        return outliers
 
     # Agrego a los paquetes el rout trip time diference
     def addRoundTripTimeDifference(self, route):
         route[0]['rtt_dif'] = route[0]['rtt']
+        lastRtt = route[0]['rtt']
         for i in range(1,len(route)):
-            difference = np.absolute(route[i]['rtt'] - route[i-1]['rtt'])
-            route[i]['rtt_dif'] = difference
+            difference = route[i]['rtt'] - lastRtt
+            if(difference >= 0):
+                lastRtt = route[i]['rtt']
+                route[i]['rtt_dif'] = difference
+            else: # El hope tardo menos que el ultimo
+                route[i]['rtt_dif'] = 0
+
 
     def getProbableRouteNode(self, probableNodes, ttl):
         node = None
